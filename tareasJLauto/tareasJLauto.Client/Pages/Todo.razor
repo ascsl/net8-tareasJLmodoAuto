@@ -1,0 +1,169 @@
+﻿@page "/todo"
+@rendermode InteractiveAuto
+@using tareasJLauto.Shared
+
+<PageTitle>Todo</PageTitle>
+
+<div class="container">
+    <h1>Todo: @todos.Count() tareas</h1>
+
+    <div>
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>Selec</div>
+            <div>Tarea</div>
+            <div>Estado</div>
+            <div>Bloqueo</div>
+            <div>Operación</div>
+        </div>
+        @foreach (var todo in todosToShow)
+        {
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <input type="checkbox" @bind="todo.IsSelected" class="ml-2" />
+                </div>
+                <div>
+                    <input @bind="todo.Title" class="form-control-plaintext" />
+                </div>
+                <div>@todo.Status</div>
+                <div>@todo.IsBlocked</div>
+                <div>
+                    <button @onclick="@(() => ChangeStatus(todo))" class="btn btn-sm btn-primary mr-2" disabled="@todo.IsBlocked">
+                        Cambiar Estado
+                    </button>
+                    <button @onclick="@(() => DeleteOne(todo))" class="btn btn-sm btn-danger">
+                        Eliminar
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="list-group mb-3">
+        <!-- Agrega margen -->
+    </div>
+    <div class="input-group mb-3">
+        <input type="text" class="form-control" placeholder="Descripcion de la tarea" @bind="newTodo" />
+        <div class="input-group-append">
+            <button class="btn btn-primary mr-2" @onclick="AddTodo">Add todo</button>
+        </div>
+        <div class="mr-2"></div>
+        <button @onclick="Seeder" class="btn btn-secondary mr-2">Seeder</button>
+        <button @onclick="DeleteSelected" class="btn btn-secondary mr-2">Delete Selected</button>
+        <button @onclick="BlockedSelected" class="btn btn-secondary mr-2">Block Selected</button>
+    </div>
+    <div class="list-group mb-3">
+        <!-- Agrega margen -->
+    </div>
+    <nav aria-label="Page navigation">
+        <ul class="pagination">
+            <li class="page-item"><button class="page-link" @onclick="PrevPage" disabled="@(currentPage == 1)">Prev</button></li>
+            <li class="page-item active"><span class="page-link">Page @currentPage of @totalPages</span></li>
+            <li class="page-item"><button class="page-link" @onclick="NextPage" disabled="@(currentPage == totalPages)">Next</button></li>
+        </ul>
+    </nav>
+</div>
+
+@code {
+    private List<TodoItem> todos = new();
+    private string? newTodo;
+    private List<TodoItem> todosToShow = new();
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages;
+
+    private void AddTodo()
+    {
+        if (!string.IsNullOrWhiteSpace(newTodo))
+        {
+            todos.Add(new TodoItem(newTodo));
+            newTodo = string.Empty;
+            ShowPage();
+        }
+    }
+
+    private void Seeder()
+    {
+        int max = 100000;
+        for (int i = 1; i <= max; i++)
+        {
+            todos.Add(new TodoItem($"Todo {i}"));
+        }
+        ShowPage();
+    }
+
+    private void ShowPage()
+    {
+        totalPages = (int)Math.Ceiling((double)todos.Count / pageSize);
+        todosToShow = todos.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
+    }
+
+    private void PrevPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+            ShowPage();
+        }
+    }
+
+    private void NextPage()
+    {
+        if (currentPage < totalPages)
+        {
+            currentPage++;
+            ShowPage();
+        }
+    }
+
+    private void DeleteSelected()
+    {
+        todos.RemoveAll(t => t.IsSelected);
+        ShowPage();
+    }
+
+    private void DeleteOne(TodoItem todo)
+    {
+        todos.Remove(todo);
+        ShowPage();
+    }
+
+    private void ChangeStatus(TodoItem todo)
+    {
+        // Cambia el estado del TodoItem aquí
+        if (todo.IsBlocked || todo.Status == TodoStatus.Completada)
+        {
+            // Bloqueada, no se puede cambiar el estado
+        }
+        else
+        {
+            switch (todo.Status)
+            {
+                case TodoStatus.Planificada:
+                    todo.Status = TodoStatus.Iniciada;
+                    break;
+                case TodoStatus.Iniciada:
+                    todo.Status = TodoStatus.EnCurso;
+                    break;
+                case TodoStatus.EnCurso:
+                    todo.Status = TodoStatus.Completada;
+                    break;
+                default:
+                    // Error
+                    break;
+            }
+        }
+
+    }
+
+    private void BlockedSelected()
+    {
+        foreach (var todo in todos)
+        {
+            if (todo.IsSelected)
+            {
+                todo.IsBlocked = true;
+            }
+        }
+        ShowPage();
+    }
+
+}
